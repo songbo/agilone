@@ -15,9 +15,11 @@ public class dbwrapper {
 	private long latestMills;
 	/** the LRU cache **/
 	LRUrecordhashmap<Integer,HashMap<String,String>> resultmap;
+	/** maxCapacity is the size of LRU cache **/
 	public dbwrapper(int maxCapacity) 
 	{
-		db=new testFactDbApi();
+		/** initialize the FactDbApi **/
+		/** initialize the LRU cache **/
 		resultmap = new LRUrecordhashmap<Integer, HashMap<String,String>>(maxCapacity);
 	}
 	/**
@@ -31,6 +33,7 @@ public class dbwrapper {
 	{
 		Vector<String> result =new Vector<String>();
 		FactDbRecord record;
+		String fieldname;
 		if(resultmap.containsKey(entity_id))
 		{
 			HashMap<String,String> map = resultmap.get(entity_id);
@@ -44,7 +47,14 @@ public class dbwrapper {
 			Iterator<String> iterator= fields.iterator();
 			while(iterator.hasNext())
 			{
-				result.add(map.get(iterator.next()));
+				fieldname =iterator.next();
+				/**check the required field exists or not **/
+				if(!map.containsKey(fieldname))
+				{
+					System.out.println("the field "+fieldname+" not exists");
+					return null;
+				}
+				result.add(map.get(fieldname));
 			}
 		}
 		else {
@@ -63,6 +73,13 @@ public class dbwrapper {
 			Iterator<String> iterator= fields.iterator();
 			while(iterator.hasNext())
 			{
+				fieldname =iterator.next();
+				/**check the required field exists or not **/
+				if(!resultrecord.containsKey(fieldname))
+				{
+					System.out.println("the field "+fieldname+" not exists");
+					return null;
+				}
 				result.add(resultrecord.get(iterator.next()));
 			}
 			resultmap.put(entity_id, resultrecord);
