@@ -10,15 +10,16 @@ import java.util.Vector;
 */
 public class dbwrapper {
 	
-	private FactDbApi db;
+	private FactDb mydb;
 	/** the latest access time **/
 	private long latestMills;
 	/** the LRU cache **/
 	LRUrecordhashmap<Integer,HashMap<String,String>> resultmap;
 	/** maxCapacity is the size of LRU cache **/
-	public dbwrapper(int maxCapacity) 
+	public dbwrapper(FactDb db, int maxCapacity) 
 	{
 		/** initialize the FactDbApi **/
+		mydb=db;
 		/** initialize the LRU cache **/
 		resultmap = new LRUrecordhashmap<Integer, HashMap<String,String>>(maxCapacity);
 	}
@@ -34,16 +35,19 @@ public class dbwrapper {
 		Vector<String> result =new Vector<String>();
 		FactDbRecord record;
 		String fieldname;
+		HashMap<String,String> map=resultmap.get(entity_id);
 		if(resultmap.containsKey(entity_id))
 		{
-			HashMap<String,String> map = resultmap.get(entity_id);
-			db.gotoAfterLatest();
-			while((record=db.previous()) != null)
+			mydb.gotoAfterLatest();
+			while((record=mydb.previous()) != null)
 			{
 				if(record.getMillis()<=this.latestMills)
 					break;
-				resultmap.get(record.getEntityId()).put(record.fieldName(), record.fieldValue());
+				if(record.getEntityId()!=entity_id)
+					continue;
+				map.put(record.fieldName(), record.fieldValue());
 			}			
+			map = resultmap.get(entity_id);
 			Iterator<String> iterator= fields.iterator();
 			while(iterator.hasNext())
 			{
@@ -59,17 +63,17 @@ public class dbwrapper {
 		}
 		else {
 			HashMap<String, String> resultrecord =new HashMap<String, String>();
-			db.gotoAfterLatest();
+			mydb.gotoAfterLatest();
 			
-			while((record=db.previous()) != null)
+			while((record=mydb.previous()) != null)
 			{
 				if(record.getEntityId()==entity_id&&!resultrecord.containsKey((record.fieldName())))
 				{
 					resultrecord.put(record.fieldName(), record.fieldValue());
 				}
 			}
-			db.gotoAfterLatest();
-			latestMills=db.previous().getMillis();
+			mydb.gotoAfterLatest();
+			latestMills=mydb.previous().getMillis();
 			Iterator<String> iterator= fields.iterator();
 			while(iterator.hasNext())
 			{
@@ -80,7 +84,7 @@ public class dbwrapper {
 					System.out.println("the field "+fieldname+" not exists");
 					return null;
 				}
-				result.add(resultrecord.get(iterator.next()));
+				result.add(resultrecord.get(fieldname));
 			}
 			resultmap.put(entity_id, resultrecord);
 		}
